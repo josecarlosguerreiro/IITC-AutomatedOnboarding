@@ -7,9 +7,6 @@ from datetime import datetime
 import json
 
 
-runDate = datetime.today().strftime('%Y-%m-%d_%Hh%Mm%Ss')
-
-creatmapp = []
 
 '''
 Class createMapping
@@ -44,27 +41,88 @@ class cMapping:
         self.attName = attName
         self.attValue = attValue
 
+'''
+Class createProduct
+'''
+class cProduct:
+    def __init__(self, productId, productName,productType, description, effectiveDateprod,user, applicationName, universeName, name, value, attributeTypeDate):
+        self.productId = productId
+        self.productName = productName
+        self.productType = productType
+        self.description = description
+        self.effectiveDateprod = effectiveDateprod
+        self.user = user
+        self.applicationName = applicationName
+        self.universeName = universeName
+        self.name = name
+        self.value = value
+        self.attributeTypeDate = attributeTypeDate
+
+
+    def getProductId(self):
+        return self.productId
+
+    def getProductName(self):
+        return self.productName
+
+    def getProductType(self):
+        return self.productType
+
+    def getDescription(self):
+        return self.description
+
+    def getEffectiveDateprod(self):
+        return self.effectiveDateprod
+
+    def getUser(self):
+        return self.user
+
+    def getApplicationName(self):
+        return self.applicationName
+
+    def getUniverseName(self):
+        return self.universeName
+
+    def getName(self):
+        return self.name
+
+    def getValue(self):
+        return self.value
+
+    def getAttributeTypeDate(self):
+        return self.attributeTypeDate
+
+    def obj_createProduct(self, productId, productName,productType, description, effectiveDateprod,user, applicationName, universeName, name, value, attributeTypeDate):
+        self.productId = productId
+        self.productName = productName
+        self.productType = productType
+        self.description = description
+        self.effectiveDateprod = effectiveDateprod
+        self.user = user
+        self.applicationName = applicationName
+        self.universeName = universeName
+        self.name = name
+        self.value = value
+        self.attributeTypeDate = attributeTypeDate.replace("\n","")
+
 
 def generateLogFile(res, filename, operation, productId):
-
     fp = open(filename, 'a+')
     fp.write("#########################################\n")
-    if operation == 'CreateProduct':
-        fp.write("\nStatus Code: %s\n" % res.status_code)
-        fp.write(res.text)
-
-    if operation == 'deleteProduct' or operation == 'deleteMapping':
-        if res.status_code == 200:
-            fp.write("ProductID: %s deleted" % productId)
-        else:
-            fp.write("ProductID: %s" % productId)
-        fp.write(res.text)
-        fp.write("\nStatus Code: %s" % res.status_code)
-    if operation == 'createMapping':
+    if operation == 'CreateProduct' or operation == 'createMapping':
         for result in res:
             fp.write(result.text)
             fp.write("\nStatus Code: %s\n" % result.status_code)
-    fp.write("\n#########################################\n")
+            fp.write("\n----------------------------------------\n")
+    if operation == 'deleteProduct':
+        if res.status_code == 200:
+            fp.write("ProductID: %s deleted" % productId)
+        fp.write(res.text)
+        fp.write("\nStatus Code: %s" % res.status_code)
+    if operation == 'deleteMapping':
+            fp.write("canonicalId : %s " % productId)
+            fp.write("Status Code: %s\n" % res.status_code)
+
     fp.close()
 
 
@@ -81,20 +139,6 @@ def move2Archive(operation):
             else:
                 pass
 
-def createMapping_curl_aux(array_aux):
-
-    json_str = "{ 'versionNumber' : -1, 'mappings': [ {"
-    aux_str = ""
-    for i in array_aux:
-        aux_str = aux_str + "'" + 'productId' + "'" + ":" + i.getProdId() + ','
-        aux_str = aux_str + "'" + 'enabled' + ":" + 'true,'
-        aux_str = aux_str + "'" + 'effectiveDate' + "'" + ":" + i.getEffDate() + ','
-        aux_str = aux_str + "'" + 'attributeName' + "'" + ":" + i.getAttName() + ','
-        aux_str = aux_str + "'" + 'attributeValue' + "'" + ":" + i.getAttValue()
-
-    json_str = json_str + aux_str + "]}"
-
-
 def createMapping_curl(creatmapp):
     #flag = 0 : Unic json
     #flag = 1 : increment json struture
@@ -102,7 +146,7 @@ def createMapping_curl(creatmapp):
     #       i: insert
 
 
-    API_ENDPOINT = "http://10.254.3.10:49321/pmapper/v1/mapping"
+    API_ENDPOINT = "http://10.254.3.10:49121/pmapper/v1/mapping"
 
     headers = {
         "Content-Type": "application/json",
@@ -121,11 +165,14 @@ def createMapping_curl(creatmapp):
                 }
             ]
         }
+        print("")
+        for i in creatmapp:
+            print("getProdId: " + i.getProdId() + " getEffDate: " + i.getEffDate()  + " attributeName: " + i.getAttName() + "attributeValue: " + i.getAttValue() )
 
         json_data = json.dumps(data)
         try:
             r = requests.post(url=API_ENDPOINT, headers=headers, data=json_data)
-
+            print("Response: " + r.text)
         except:
             print("Error connecting to " + API_ENDPOINT)
             exit(-1)
@@ -164,10 +211,11 @@ def createMapping_curl(creatmapp):
     return r
 
 def createMapping():
-    global creatmapp
+    creatmapp = []
+    #global creatmapp
     input_fileName = 'CreateMapping_1.csv'
     lines = readFile(input_fileName)
-
+    runDate = datetime.today().strftime('%Y-%m-%d_%Hh%Mm%Ss')
     productArr = []
     result = []
 
@@ -244,15 +292,11 @@ def createMapping():
     generateLogFile(result, filename, create_prod, 1)
 
 
-def deleteMapping_curl(productId):
-
-    API_ENDPOINT = "http://100.254.3.10:49321/v1/product"
-    data = {
-        'productId': productId
-    }
-
+def deleteMapping_curl(canonicalId):
+    API_ENDPOINT = "http://10.254.3.10:49121/pmapper/v1/mapping/"
+    CURL = API_ENDPOINT + canonicalId
     try:
-        r = requests.delete(url=API_ENDPOINT, data=data)
+        r = requests.delete(url=API_ENDPOINT, data=CURL)
         return r
     except:
         print("DELETE PRODUCT: Erro connecting to " + API_ENDPOINT)
@@ -261,8 +305,8 @@ def deleteMapping_curl(productId):
 def deleteMapping():
     input_fileName = 'DeleteMapping.csv'
     lines = readFile(input_fileName)
-
-    operation = "DeleteMapping"
+    runDate = datetime.today().strftime('%Y-%m-%d_%Hh%Mm%Ss')
+    operation = "deleteMapping"
     filename = "Output_deleteMapping_" + runDate + ".xml"
     print("File created: " + filename)
 
@@ -274,75 +318,118 @@ def deleteMapping():
             j = j + 1
             pass
         else:
-            productId = elem[0]
-            res = deleteProduct_curl(productId)
-            generateLogFile(res, filename, operation, productId)
+            canonicalId = elem[0]
+            res = deleteMapping_curl(canonicalId)
+            generateLogFile(res, filename, operation, canonicalId)
 
-def createProduct_curl(productId,productName, productType, description, effectiveDateprod, user,
-                applicationName, universeName, name, value, attributeTypeDate):
+def createProduct_curl(createprod):
 
-    API_ENDPOINT = "http://10.254.3.10:49321/v1/product"
+    API_ENDPOINT = "http://10.254.3.10:49121/v1/product"
 
     headers = {
         "Content-Type": "application/json",
     }
-    if name == "" and value == "":
-        data = {
-            'productId': productId,
-            'productName': productName,
-            'productType': productType,
-            'description': description,
-            'enabled': True,
-            'effectiveDate': effectiveDateprod,
-            "versionNumber": -1,
-            'user': user,
-            'applicationName': applicationName,
-            'universeName': universeName
-        }
-    else:
-        data = {
-            'productId' : productId,
-            'productName' : productName,
-            'productType' : productType,
-            'description' : description,
-            'enabled' : True,
-            'effectiveDate' : effectiveDateprod,
-            "versionNumber": -1,
-            'user' : user,
-            'applicationName' : applicationName,
-            'universeName' : universeName,
-            'attributes' : [{
-                'name' : name,
-                'value' : value,
-                'effectiveDate' : effectiveDateprod,
-                'enabled': True
-            }],
-        }
 
-    try:
-        r = requests.post(url=API_ENDPOINT, headers=headers, data=json.dumps(data))
-    except:
-        print("Error connecting to " + API_ENDPOINT)
-        exit(-1)
+    if len(createprod) == 1:
+        if createprod[0].getName() == "" and createprod[0].getValue() == "":
+            data = {
+                'productId': createprod[0].getProductId(),
+                'productName': createprod[0].getProductName(),
+                'productType': createprod[0].getProductType(),
+                'description': createprod[0].getDescription(),
+                'enabled': True,
+                'effectiveDate': createprod[0].getEffectiveDateprod(),
+                "versionNumber": -1,
+                'user': createprod[0].getUser(),
+                'applicationName': createprod[0].getApplicationName(),
+                'universeName': createprod[0].getUniverseName()
+            }
+        else:
+            data = {
+                'productId': createprod[0].getProductId(),
+                'productName': createprod[0].getProductName(),
+                'productType': createprod[0].getProductType(),
+                'description': createprod[0].getDescription(),
+                'enabled': True,
+                'effectiveDate': createprod[0].getEffectiveDateprod(),
+                "versionNumber": -1,
+                'user': createprod[0].getUser(),
+                'applicationName': createprod[0].getApplicationName(),
+                'universeName': createprod[0].getUniverseName(),
+                'attributes': [{
+                    'name': createprod[0].getName(),
+                    'value': createprod[0].getValue(),
+                    'effectiveDate': createprod[0].getAttributeTypeDate().replace("\n",""),
+                    'enabled': True
+                }],
+            }
+
+        json_data = json.dumps(data)
+        try:
+            r = requests.post(url=API_ENDPOINT, headers=headers, data=json_data)
+            print("Response: " + r.text)
+        except:
+            print("Error connecting to " + API_ENDPOINT)
+            exit(-1)
+    else:
+        product = []
+        map_aux = {}
+        print("ENTREI")
+
+        dict = {'productId': createprod[0].getProductId(),
+                'productName': createprod[0].getProductName(),
+                'productType': createprod[0].getProductType(),
+                'description': createprod[0].getDescription(),
+                'enabled': True,
+                'effectiveDate': createprod[0].getEffectiveDateprod(),
+                'versionNumber': -1,
+                'user': createprod[0].getUser(),
+                'applicationName': createprod[0].getApplicationName(),
+                'universeName': createprod[0].getUniverseName()
+                }
+
+        for i in createprod:
+            map_aux = {}
+            map_aux.update({'name': i.getName()})
+            map_aux.update({'value': i.getValue()})
+            map_aux.update({'effectiveDate': i.getAttributeTypeDate().replace("\n","")})
+            map_aux.update({'enabled': True})
+            product.append(map_aux)
+
+
+
+        dict.update({'attributes': product})
+
+
+        json_data = json.dumps(dict)
+
+        print(json_data)
+        try:
+            r = requests.post(url=API_ENDPOINT, headers=headers, data=json_data)
+        except:
+            print("Error connecting to " + API_ENDPOINT)
+            exit(-1)
 
     return r
 
 
 def createProduct():
-
+    createprod= []
     input_fileName = 'Createproduct_1.csv'
     lines = readFile(input_fileName)
-
+    runDate = datetime.today().strftime('%Y-%m-%d_%Hh%Mm%Ss')
     operation = "CreateProduct"
     filename = "Output_createProduct_" + runDate + ".xml"
     print("File created: " + filename)
+    productArr = []
+    result = []
 
-    j=0
+    j = 0
     for i in lines:
+        # ignore the first row
         elem = i.split(";")
-        #ignore the first row
         if j == 0:
-            j = j+1
+            j = j + 1
             pass
         else:
             productId = elem[0]
@@ -356,14 +443,69 @@ def createProduct():
             name = elem[8]
             value = elem[9]
             attributeTypeDate = elem[10]
-            res = createProduct_curl(productId,productName, productType, description, effectiveDateprod, user,
-                applicationName, universeName, name, value, attributeTypeDate)
-            generateLogFile(res, filename, operation, productId)
+            mapObj = cProduct(productId, productName, productType, description, effectiveDateprod,user,applicationName,universeName,name,value,attributeTypeDate)
+            productArr.append(mapObj)
+
+    i = 0
+    j = 1
+    prev = 0
+    mapp_i = productArr[i].getProductId()
+    mapp_j = productArr[j].getProductId()
+
+    if mapp_i == mapp_j:
+        createprod.append(productArr[i])
+    else:
+        createprod.append(productArr[i])
+    i = j
+    j += 1
+    while j <= len(productArr):
+        if j == len(productArr):
+            mapp_i = productArr[i].getProductId()
+            mapp_prev = productArr[prev].getProductId()
+            if mapp_prev == mapp_i:
+                createprod.append(productArr[i])
+                #print("J: " + str(j))
+                #createprod.append(productArr[j])
+                res = createProduct_curl(createprod)
+                result.append(res)
+            else:
+                res = createProduct_curl(createprod)
+                result.append(res)
+                createprod = []
+                createprod.append(productArr[i])
+                res = createProduct_curl(createprod)
+                result.append(res)
+            j += 1
+        else:
+            mapp_i = productArr[i].getProductId()
+            mapp_j = productArr[j].getProductId()
+            mapp_prev = productArr[prev].getProductId()
+            if mapp_i == mapp_j and mapp_prev == mapp_i:
+                createprod.append(productArr[i])
+                prev = i
+                i = j
+                j += 1
+            else:
+                if mapp_prev == mapp_i:
+                    createprod.append(productArr[i])
+                else:
+                    res = createProduct_curl(createprod)
+                    result.append(res)
+                    createprod = []
+                    createprod.append(productArr[i])
+
+                prev = i
+                i = j
+                j += 1
+
+    #generateLogFile(result, filename, create_prod, 1)
+    generateLogFile(result, filename, operation, 1)
+
 
 
 def deleteProduct_curl(productId, productName, productType, applicationName):
 
-    API_ENDPOINT = "http://10.254.3.10:49321/v1/product"
+    API_ENDPOINT = "http://10.254.3.10:49121/v1/product"
 
     if applicationName.__contains__("CM+"):
        applicationName.replace("CM+","CM%2B")
@@ -387,7 +529,7 @@ def deleteProduct_curl(productId, productName, productType, applicationName):
 def deleteProduct():
     input_fileName = 'Deleteproduct.csv'
     lines = readFile(input_fileName)
-
+    runDate = datetime.today().strftime('%Y-%m-%d_%Hh%Mm%Ss')
     operation = "deleteProduct"
     filename = "Output_deleteProduct_" + runDate + ".xml"
     print("File created: " + filename)
@@ -413,6 +555,7 @@ def readFile(fileName):
         print("Opening " + fileName)
         f1 = open(fileName, 'r')
         lines = f1.readlines()
+        f1.close()
         return lines
     except:
         print("Cannot read file")
